@@ -1,0 +1,11 @@
+{
+  "name": "my-2d-bot",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
