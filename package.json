@@ -1,11 +1,13 @@
 {
   "name": "my-2d-bot",
   "version": "1.0.0",
+  "description": "Moh 2D Reseller Smart AI Bot",
   "main": "server.js",
-  "dependencies": {
-    "node-telegram-bot-api": "^0.66.0"
-  },
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "@google/genai": "^0.1.1"
   }
 }
