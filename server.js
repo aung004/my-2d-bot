@@ -2,7 +2,8 @@ const TelegramBot = require('node-telegram-bot-api');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const bot = new TelegramBot('8999801174:AAEfeQqGFOidmk0FIWjFlWu1T3_p70IZyDo', {polling: true});
-const genAI = new GoogleGenerativeAI("ဒီနေရာမှာ-အစ်ကို့-Gemini-Key-ကို-ထည့်ပါ");
+// ဒီနေရာမှာ Quote လေးတွေ ( " " ) ထည့်ပေးလိုက်ပါ
+const genAI = new GoogleGenerativeAI("AIzaSyANs2jECQpCGLjtOmjwKGHXeMY1DwjH7RU");
 
 bot.on('message', async (msg) => {
   const text = msg.text;
@@ -13,6 +14,7 @@ bot.on('message', async (msg) => {
     const result = await model.generateContent(text);
     bot.sendMessage(msg.chat.id, result.response.text());
   } catch (err) {
+    console.error(err); // ဘာအမှားလဲသိရအောင် ဒီစာကြောင်းလေးထည့်ပေးပါ
     bot.sendMessage(msg.chat.id, "ခဏလေးနော် အစ်ကို၊ AI စနစ်အနည်းငယ် အလုပ်များနေလို့ပါ။");
   }
 });
