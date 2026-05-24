@@ -1,146 +1,73 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { GoogleGenAI } = require('@google/genai');
-const http = require('http'); // Render Web Service Error မတက်စေရန် Port ဖွင့်ဖို့ ထည့်ခြင်း
+const http = require('http');
 
-// အစ်ကို့ရဲ့ Telegram Bot Token
-const token = '8014324965:AAE7azq1CGD7CGo2W1yIJFyXUK3R7r7BsxE';
+// Render အတွက် Dummy Port ဖွင့်ပေးခြင်း
+const port = process.env.PORT || 10000;
+http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Moh 2D Bot is Running\n');
+}).listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
+
+// Bot Token နှင့် AI Key သတ်မှတ်ခြင်း
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const aiKey = process.env.GEMINI_API_KEY;
+
+if (!token || !aiKey) {
+  console.error("Error: TELEGRAM_BOT_TOKEN သို့မဟုတ် GEMINI_API_KEY မရှိသေးပါ။ Environment Variables မှာ ထည့်ပေးပါ။");
+  process.exit(1);
+}
+
 const bot = new TelegramBot(token, { polling: true });
-
-// အခမဲ့ သုံးနိုင်သော Google AI စနစ် (Gemini-2.5-Flash)
-const ai = new GoogleGenAI();
-const MODEL_NAME = 'gemini-2.5-flash';
+const ai = new GoogleGenAI({ apiKey: aiKey });
 
 console.log("Moh 2D Reseller Smart AI Bot စတင်အလုပ်လုပ်ပါပြီ...");
 
-// Render ရဲ့ Port Scan Timeout Error ကို ကျော်ရန် Dummy Server ဆောက်ခြင်း
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot is running safely!\n');
-});
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+// 2D စာရင်း တွက်ချက်သည့် စနစ် (Regex)
+function calculate2D(text) {
+  const pattern = /(\d{2})\s*[rR]?\s*[-=]?\s*(\d+)/g;
+  let match;
+  let total = 0;
+  let details = [];
 
-// Bot ရဲ့ စရိုက်နှင့် အချက်အလက်များ သတ်မှတ်ခြင်း (System Instruction)
-const botPersonality = `သင်သည် "Moh 2D Reseller" အဖွဲ့အစည်း၏ လူမှုရေးကောင်းမွန်ပြီး ဖော်ရွေပျူငှာသော AI လက်ထောက် ဖြစ်သည်။ 
-မြန်မာလိုပဲ သဘာဝကျကျ ယဉ်ယဉ်ကျေးကျေး ပြန်ပြောပေးပါ။ လူများက 2D ဂဏန်းစာရင်းများ ရိုက်ပို့ပါက တွက်ချက်ပေးမည့်စနစ်ရှိပြီးသားမို့ သင်ဝင်ရောက်ဖြေရှင်းရန်မလိုပါ။ 
-သာမန် နှုတ်ဆက်စကား၊ စျေးနှုန်းမေးမြန်းခြင်း၊ စကားစမြည်ပြောခြင်းများကိုသာ လူကဲ့သို့ အကောင်းဆုံး အပြန်အလှန် စကားပြောပေးပါ။`;
+  while ((match = pattern.exec(text)) !== null) {
+    let num = match[1];
+    let amt = parseInt(match[2]);
+    total += amt;
+    details.push(`${num}: ${amt} ကျပ်`);
+  }
+  
+  if (details.length > 0) {
+    return { isList: true, text: `📊 2D စာရင်း တွက်ချက်မှု-\n------------------\n${details.join('\n')}\n------------------\nစုစုပေါင်းကျသင့်ငွေ - ${total} ကျပ်` };
+  }
+  return { isList: false };
+}
 
-// /start လုပ်လျှင် ပြသမည့်စာ
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    const welcomeMessage = `👋 **Moh 2D Reseller ရဲ့ Smart AI Bot မှ ကြိုဆိုပါတယ်ဗျာ!**
-
-📝 **2D အော်ဒါတွက်ချက်ရန် နမူနာပုံစံများ-**
-• \`43 R 250\` | \`12 300 R 100\`
-• \`15,26,37,48 500\`
-• \`0 ထိပ် 300\` | \`5 ပိတ် 200\` | \`အပူး 1000\`
-
-🤖 တခြား သိချင်တာရှိရင်လည်း စာရိုက်ပြီး ကျွန်တော့်ကို လူလိုမျိုး အေးဆေး စကားပြောလို့ရပါတယ်ဗျာ။`;
-    
-    bot.sendMessage(chatId, welcomeMessage, { parse_mode: "Markdown" });
-});
-
-// မက်ဆေ့ခ်ျများကို ဖတ်ပြီး ခွဲခြား處理ခြင်း
+// Bot ထံစာဝင်လာလျှင် အလုပ်လုပ်မည့်အပိုင်း
 bot.on('message', async (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text ? msg.text.trim() : '';
+  const chatId = msg.chat.id;
+  const text = msg.text;
 
-    if (text.startsWith('/')) return;
+  if (!text) return;
 
-    const lines = text.split('\n');
-    let responseText = "📝 **အော်ဒါစာရင်းတွက်ချက်မှု**\n\n";
-    let totalAmount = 0;
-    let hasValidOrder = false;
+  // 1. 2D စာရင်း ဟုတ်မဟုတ် အရင်စစ်မယ်
+  const check2D = calculate2D(text);
+  if (check2D.isList) {
+    bot.sendMessage(chatId, check2D.text);
+    return;
+  }
 
-    // 2D စာရင်း ဟုတ်/မဟုတ် စစ်ဆေးခြင်း
-    lines.forEach(line => {
-        let currentLine = line.trim();
-        if (!currentLine) return;
-
-        const matchPattern1 = currentLine.match(/^(\d{2})\s+(\d+)\s+[Rr]\s+(\d+)$/);
-        const matchPattern2 = currentLine.match(/^(\d{2})\s+[Rr]\s+(\d+)$/);
-        const matchTop = currentLine.match(/^(\d)\s*ထိပ်\s*(\d+)$/);
-        const matchEnd = currentLine.match(/^(\d)\s*ပိတ်\s*(\d+)$/);
-        const matchDouble = currentLine.match(/^အပူး\s*(\d+)$/);
-        const matchMulti = currentLine.match(/^([\d,]+)\s+(\d+)$/);
-
-        if (matchPattern1) {
-            const num = matchPattern1[1];
-            const mainAmt = parseInt(matchPattern1[2]);
-            const rAmt = parseInt(matchPattern1[3]);
-            const rNum = num.split('').reverse().join('');
-            responseText += `• ${num} = ${mainAmt}\n• ${rNum} = ${rAmt}\n`;
-            totalAmount += (mainAmt + rAmt);
-            hasValidOrder = true;
-        } 
-        else if (matchPattern2) {
-            const num = matchPattern2[1];
-            const amt = parseInt(matchPattern2[2]);
-            const rNum = num.split('').reverse().join('');
-            responseText += `• ${num} = ${amt}\n• ${rNum} = ${amt}\n`;
-            totalAmount += (amt * 2);
-            hasValidOrder = true;
-        }
-        else if (matchTop) {
-            const topDigit = matchTop[1];
-            const amt = parseInt(matchTop[2]);
-            responseText += `• ${topDigit} ထိပ်တန်း (၁၀ ကွက်) = ${amt * 10}\n`;
-            totalAmount += (amt * 10);
-            hasValidOrder = true;
-        }
-        else if (matchEnd) {
-            const endDigit = matchEnd[1];
-            const amt = parseInt(matchEnd[2]);
-            responseText += `• ${endDigit} နောက်ပိတ် (၁၀ ကွက်) = ${amt * 10}\n`;
-            totalAmount += (amt * 10);
-            hasValidOrder = true;
-        }
-        else if (matchDouble) {
-            const amt = parseInt(matchDouble[1]);
-            responseText += `• အပူးပတ် (၁၀ ကွက်) = ${amt * 10}\n`;
-            totalAmount += (amt * 10);
-            hasValidOrder = true;
-        }
-        else if (matchMulti && !currentLine.includes('ထိပ်') && !currentLine.includes('ပိတ်')) {
-            const nums = matchMulti[1].split(',');
-            const amt = parseInt(matchMulti[2]);
-            let validNumsCount = 0;
-            nums.forEach(n => {
-                if (n.trim().length === 2) {
-                    responseText += `• ${n.trim()} = ${amt}\n`;
-                    validNumsCount++;
-                }
-            });
-            totalAmount += (amt * validNumsCount);
-            if(validNumsCount > 0) hasValidOrder = true;
-        }
+  // 2. စာရင်းမဟုတ်ရင် Gemini AI နဲ့ စကားပြောမယ်
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `သင်သည် Moh 2D Reseller (မိုး 2D ဒိုင်ခွဲ) ၏ ဖော်ရွေပျူငှာသော လူသားအရောင်းကိုယ်စားလှယ်ဖြစ်သည်။ Customer က လာရောက်နှုတ်ဆက်ခြင်း သို့မဟုတ် အထွေထွေမေးမြန်းခြင်းကို လူလိုပဲ ယဉ်ကျေးပျူငှာစွာ တိုတိုတုတ်တုတ် ပြန်ဖြေပေးပါ။ Customer ပြောသည့်စကား: "${text}"`,
     });
-
-    // 2D စာရင်းဖြစ်က တွက်ချက်မှုပြမည်
-    if (hasValidOrder) {
-        responseText += "-----------------------\n";
-        responseText += `💰 **စုစုပေါင်းကျသင့်ငွေ = ${totalAmount} ကျပ်**`;
-        bot.sendMessage(chatId, responseText, { parse_mode: "Markdown" });
-    } 
-    // 2D စာရင်းမဟုတ်က AI စကားပြောစနစ်ဖြင့် ပြန်လည်ဖြေကြားမည်
-    else {
-        try {
-            // AI ဆီကနေ အဖြေတောင်းခြင်း
-            const aiResponse = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: text,
-                config: {
-                    systemInstruction: botPersonality
-                }
-            });
-            
-            const replyText = aiResponse.text || "နားမလည်လိုက်ပါဘူးဗျာ။ နောက်တစ်ခေါက်လောက် ပြန်ပြောပေးပါဦး။";
-            bot.sendMessage(chatId, replyText);
-        } catch (error) {
-            console.error("AI Error:", error);
-            bot.sendMessage(chatId, "မင်္ဂလာပါဗျာ! Moh 2D Reseller မှ ကြိုဆိုပါတယ်။");
-        }
-    }
+    bot.sendMessage(chatId, response.text);
+  } catch (error) {
+    console.error("AI Error:", error);
+    bot.sendMessage(chatId, "ခဏလေးနော် အစ်ကို၊ စနစ်အနည်းငယ် အလုပ်များနေလို့ပါ။");
+  }
 });
