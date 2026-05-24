@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { GoogleGenAI } = require('@google/genai');
+const http = require('http'); // Render Web Service Error မတက်စေရန် Port ဖွင့်ဖို့ ထည့်ခြင်း
 
 // အစ်ကို့ရဲ့ Telegram Bot Token
 const token = '8014324965:AAE7azq1CGD7CGo2W1yIJFyXUK3R7r7BsxE';
@@ -10,6 +11,16 @@ const ai = new GoogleGenAI();
 const MODEL_NAME = 'gemini-2.5-flash';
 
 console.log("Moh 2D Reseller Smart AI Bot စတင်အလုပ်လုပ်ပါပြီ...");
+
+// Render ရဲ့ Port Scan Timeout Error ကို ကျော်ရန် Dummy Server ဆောက်ခြင်း
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running safely!\n');
+});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+});
 
 // Bot ရဲ့ စရိုက်နှင့် အချက်အလက်များ သတ်မှတ်ခြင်း (System Instruction)
 const botPersonality = `သင်သည် "Moh 2D Reseller" အဖွဲ့အစည်း၏ လူမှုရေးကောင်းမွန်ပြီး ဖော်ရွေပျူငှာသော AI လက်ထောက် ဖြစ်သည်။ 
