@@ -6,12 +6,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 bot.on('message', async (msg) => {
   const text = msg.text;
-  if (!text) return;
+  if (!text || text === '/start') return; 
+  
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   try {
     const result = await model.generateContent(text);
     bot.sendMessage(msg.chat.id, result.response.text());
   } catch (err) {
-    bot.sendMessage(msg.chat.id, "စနစ်အဆင်သင့်ဖြစ်နေပါပြီ။");
+    bot.sendMessage(msg.chat.id, "ခဏလောက်စောင့်ပေးပါ၊ ပြန်ကြိုးစားကြည့်ပေးပါ။");
   }
 });
