@@ -13,6 +13,6 @@ bot.on('message', async (msg) => {
     const result = await model.generateContent(text);
     bot.sendMessage(msg.chat.id, result.response.text());
   } catch (err) {
-    bot.sendMessage(msg.chat.id, "ခဏလောက်စောင့်ပေးပါ၊ ပြန်ကြိုးစားကြည့်ပေးပါ။");
+    bot.sendMessage(msg.chat.id, "ခဏစောင့်ပေးပါ၊ ပြန်ကြိုးစားကြည့်ပါ။");
   }
 });
