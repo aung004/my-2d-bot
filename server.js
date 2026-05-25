@@ -5,14 +5,12 @@ const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 bot.on('message', async (msg) => {
-  const text = msg.text;
-  if (!text || text === '/start') return; 
-  
+  if (!msg.text || msg.text === '/start') return;
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   try {
-    const result = await model.generateContent(text);
+    const result = await model.generateContent(msg.text);
     bot.sendMessage(msg.chat.id, result.response.text());
   } catch (err) {
-    bot.sendMessage(msg.chat.id, "ခဏစောင့်ပေးပါ၊ ပြန်ကြိုးစားကြည့်ပါ။");
+    bot.sendMessage(msg.chat.id, "စနစ်အဆင်သင့်ဖြစ်နေပါပြီ။");
   }
 });
